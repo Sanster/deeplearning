@@ -1,3 +1,4 @@
 test/
 train/
 .vscode/
+__pycache__/
