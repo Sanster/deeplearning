@@ -17,22 +17,12 @@ from PIL import ImageFont
 
 import common
 
-OUTPUT_HEIGHT = common.OUTPUT_SHAPE[0]
-OUTPUT_WIDTH = common.OUTPUT_SHAPE[1]
-CHARS = common.CHARS[:]
-
-fonts = ["fonts/times.ttf", "fonts/Arial.ttf",
-         "fonts/WKGOJanb.TTF", "fonts/miso-chunky.otf",
-         "fonts/msyh.ttf"]
-
-FONT_HEIGHT = 32  # Pixel size to which the chars are resized
-
 
 def make_char_ims(output_height, font):
     font_size = output_height * 4
     font = ImageFont.truetype(font, font_size)
-    height = max(font.getsize(d)[1] for d in CHARS)
-    for c in CHARS:
+    height = max(font.getsize(d)[1] for d in common.CHARS)
+    for c in common.CHARS:
         width = font.getsize(c)[0]
         im = Image.new("RGBA", (width, height), (0, 0, 0))
         draw = ImageDraw.Draw(im)
@@ -45,7 +35,7 @@ def make_char_ims(output_height, font):
 def get_all_font_char_ims(out_height):
     # 一次生成所有字体的单个数字、英文字符
     result = []
-    for font in fonts:
+    for font in common.fonts:
         result.append(dict(make_char_ims(out_height, font)))
     return result
 
@@ -124,7 +114,8 @@ def generate_plate(font_height, char_ims):
 
 
 def generate_rand_bg():
-    bg = np.random.random_integers(0, 25, common.OUTPUT_SHAPE) / 255
+    bg = np.random.random_integers(
+        0, 25, (common.OUTPUT_HEIGHT, common.OUTPUT_WIDTH)) / 255
 
     bg = cv2.GaussianBlur(bg, (7, 7), 0)
 
@@ -134,12 +125,13 @@ def generate_rand_bg():
 def generate_im(char_ims):
     bg = generate_rand_bg()
 
-    plate, code = generate_plate(FONT_HEIGHT, char_ims)
-    plate = cv2.resize(plate, (OUTPUT_WIDTH, OUTPUT_HEIGHT))
+    plate, code = generate_plate(common.FONT_HEIGHT, char_ims)
+    plate = cv2.resize(plate, (common.OUTPUT_WIDTH, common.OUTPUT_HEIGHT))
 
     M = get_affine_transform()
 
-    plate = cv2.warpAffine(plate, M, (OUTPUT_WIDTH, OUTPUT_HEIGHT))
+    plate = cv2.warpAffine(
+        plate, M, (common.OUTPUT_WIDTH, common.OUTPUT_HEIGHT))
 
     out = plate
 
@@ -161,7 +153,7 @@ def generate_ims(num_images):
         Iterable of number plate images.
 
     """
-    char_ims = get_all_font_char_ims(FONT_HEIGHT)
+    char_ims = get_all_font_char_ims(common.FONT_HEIGHT)
     for i in range(num_images):
         yield generate_im(random.choice(char_ims))
 
@@ -174,6 +166,6 @@ if __name__ == "__main__":
             os.mkdir(dir_name)
         im_gen = generate_ims(size.get(dir_name))
         for img_idx, (im, c) in enumerate(im_gen):
-            fname = "{}/{}_{}.png".format(dir_name, img_idx, c)
+            fname = "{}/{:08d}_{}.png".format(dir_name, img_idx, c)
             print('\'' + fname + '\',')
             cv2.imwrite(fname, im * 255)
