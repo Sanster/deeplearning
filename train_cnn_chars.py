@@ -53,31 +53,38 @@ def cnn_net(x):
 
     # Map the 1024 features to the length of char, one for each digit
     with tf.name_scope('fc2'):
-        W_fc2 = weight_variable([1024, len(common.CHARS) * common.OUTPUT_CHAR_LENGTH])
-        b_fc2 = bias_variable([len(common.CHARS) * common.OUTPUT_CHAR_LENGTH])
+        W_fc2 = weight_variable(
+            [1024, common.CHAR_SET_LENGTH * common.OUTPUT_CHAR_LENGTH])
+        b_fc2 = bias_variable(
+            [common.CHAR_SET_LENGTH * common.OUTPUT_CHAR_LENGTH])
 
         y_conv = tf.matmul(h_fc1, W_fc2) + b_fc2
     return y_conv
+
+
+def to_max(y):
+    return tf.argmax(tf.reshape(y, [-1, common.CHAR_SET_LENGTH, common.OUTPUT_CHAR_LENGTH]), 1)
 
 
 def main():
     x = tf.placeholder(tf.float32, shape=(
         None, common.OUTPUT_HEIGHT, common.OUTPUT_WIDTH, 1))
 
-    y_ = tf.placeholder(tf.float32, [None, common.CHAR_SET_LENGTH * common.OUTPUT_CHAR_LENGTH])
+    y_ = tf.placeholder(
+        tf.float32, [None, common.CHAR_SET_LENGTH * common.OUTPUT_CHAR_LENGTH])
 
     y_conv = cnn_net(x)
 
     with tf.name_scope('loss'):
-        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=y_,
+        cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(labels=y_,
                                                                 logits=y_conv)
     cross_entropy = tf.reduce_mean(cross_entropy)
 
     with tf.name_scope('adam_optimizer'):
-        train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
+        train_step = tf.train.AdamOptimizer(1e-3).minimize(cross_entropy)
 
     with tf.name_scope('accuracy'):
-        correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
+        correct_prediction = tf.equal(to_max(y_conv), to_max(y_))
         correct_prediction = tf.cast(correct_prediction, tf.float32)
     accuracy = tf.reduce_mean(correct_prediction)
 
@@ -88,15 +95,20 @@ def main():
         sess.run(tf.global_variables_initializer())
         for i in range(common.BATCHES):
             batch_images, batch_labels = get_data_set(
-                './train', i * common.BATCH_SIZE)
+                './train', common.BATCH_SIZE)
 
             if i % 50 == 0:
-                train_accuracy = accuracy.eval(feed_dict={x: batch_images, y_: batch_labels})
+                train_accuracy = accuracy.eval(
+                    feed_dict={x: batch_images, y_: batch_labels})
                 print('step %d, training accuracy %g' % (i, train_accuracy))
 
-            train_step.run(feed_dict={x: batch_images, y_: batch_labels})
+            # train_step.run(feed_dict={x: batch_images, y_: batch_labels})
+            _, train_loss = sess.run([train_step, cross_entropy], feed_dict={
+                                     x: batch_images, y_: batch_labels})
+            print("Batch: {}, Loss: {}".format(i, train_loss))
 
-        print('test accuracy %g' % accuracy.eval(feed_dict={x: test_images, y_: test_labels}))
+        print('test accuracy %g' % accuracy.eval(
+            feed_dict={x: test_images, y_: test_labels}))
 
 
 if __name__ == "__main__":

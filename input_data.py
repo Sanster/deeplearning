@@ -5,6 +5,7 @@ import glob
 import cv2
 
 import common
+import random
 
 """
     {"dirname":[(im,code)]}}
@@ -25,7 +26,8 @@ def code_list_to_num_list(code):
 
 def code_to_one_hot(code):
     code_num = code_list_to_num_list(code)
-    code_one_hot = np.zeros((common.CHAR_SET_LENGTH * common.OUTPUT_CHAR_LENGTH))
+    code_one_hot = np.zeros(
+        (common.CHAR_SET_LENGTH * common.OUTPUT_CHAR_LENGTH))
     for i in range(common.OUTPUT_CHAR_LENGTH):
         num = code_num[i]
         code_one_hot[i * common.CHAR_SET_LENGTH + num] = 1
@@ -47,14 +49,19 @@ def load_data_set(data_dir):
     data_set[data_dir] = result
 
 
-def get_data_set(data_dir, start_index=None):
+def get_data_set(data_dir, size=None):
     if data_dir not in data_set.keys():
         load_data_set(data_dir)
 
-    if start_index is None:
+    if size is None:
         return unzip(data_set[data_dir])
     else:
-        return unzip(data_set[data_dir][start_index: start_index + common.BATCH_SIZE])
+        random_data = []
+        for i in range(size):
+            ix = random.randint(0, common.TRAIN_SIZE)
+            random_data.append(data_set[data_dir][ix])
+
+        return unzip(random_data)
 
 
 if __name__ == "__main__":
