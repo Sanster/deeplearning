@@ -63,7 +63,7 @@ def cnn_net(x):
 
 
 def to_max(y):
-    return tf.argmax(tf.reshape(y, [-1, common.CHAR_SET_LENGTH, common.OUTPUT_CHAR_LENGTH]), 1)
+    return tf.argmax(tf.reshape(y, [-1, common.CHAR_SET_LENGTH, common.OUTPUT_CHAR_LENGTH]), 2)
 
 
 def main():
@@ -81,7 +81,9 @@ def main():
     cross_entropy = tf.reduce_mean(cross_entropy)
 
     with tf.name_scope('adam_optimizer'):
-        train_step = tf.train.AdamOptimizer(1e-3).minimize(cross_entropy)
+        # train_step = tf.train.AdamOptimizer(1e-3).minimize(cross_entropy)
+        train_step = tf.train.GradientDescentOptimizer(
+            1e-3).minimize(cross_entropy)
 
     with tf.name_scope('accuracy'):
         correct_prediction = tf.equal(to_max(y_conv), to_max(y_))
@@ -97,7 +99,7 @@ def main():
             batch_images, batch_labels = get_data_set(
                 './train', common.BATCH_SIZE)
 
-            if i % 50 == 0:
+            if i % 50 == 0 and i != 0:
                 train_accuracy = accuracy.eval(
                     feed_dict={x: batch_images, y_: batch_labels})
                 print('step %d, training accuracy %g' % (i, train_accuracy))

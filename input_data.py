@@ -58,7 +58,7 @@ def get_data_set(data_dir, size=None):
     else:
         random_data = []
         for i in range(size):
-            ix = random.randint(0, common.TRAIN_SIZE)
+            ix = random.randint(0, common.TRAIN_SIZE - 1)
             random_data.append(data_set[data_dir][ix])
 
         return unzip(random_data)
