@@ -42,13 +42,13 @@ def cnn_net(x):
     with tf.name_scope('pool2'):
         h_pool2 = max_pool_2x2(h_conv2)
 
-    # Fully connected layer 1 -- after 2 round of downsampling, our 28x28 image
-    # is down to 7x7x64 feature maps -- maps this to 1024 features.
+    # Fully connected layer 1 -- after 2 round of downsampling, our 40x120 image
+    # is down to 10x30x64 feature maps -- maps this to 1024 features.
     with tf.name_scope('fc1'):
-        W_fc1 = weight_variable([7 * 7 * 64, 1024])
+        W_fc1 = weight_variable([7 * 10 * 64, 1024])
         b_fc1 = bias_variable([1024])
 
-        h_pool2_flat = tf.reshape(h_pool2, [-1, 7 * 7 * 64])
+        h_pool2_flat = tf.reshape(h_pool2, [-1, 7 * 10 * 64])
         h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
     # Map the 1024 features to the length of char, one for each digit
@@ -82,16 +82,21 @@ def main():
     accuracy = tf.reduce_mean(correct_prediction)
 
     test_images, test_labels = get_data_set('./test')
+    print("Finish loading test data")
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        for i in range(2000):
-            batch_image, batch_labels = get_data_set(
+        for i in range(common.BATCHES):
+            batch_images, batch_labels = get_data_set(
                 './train', i * common.BATCH_SIZE)
-            train_step.run(feed_dict={x: batch_image, y_: batch_labels})
 
-        print('test accuracy %g' % accuracy.eval(
-            feed_dict={x: test_images, y_: test_labels}))
+            if i % 50 == 0:
+                train_accuracy = accuracy.eval(feed_dict={x: batch_images, y_: batch_labels})
+                print('step %d, training accuracy %g' % (i, train_accuracy))
+
+            train_step.run(feed_dict={x: batch_images, y_: batch_labels})
+
+        print('test accuracy %g' % accuracy.eval(feed_dict={x: test_images, y_: test_labels}))
 
 
 if __name__ == "__main__":

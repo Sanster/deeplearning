@@ -54,7 +54,7 @@ def get_data_set(data_dir, start_index=None):
     if start_index is None:
         return unzip(data_set[data_dir])
     else:
-        return unzip(data_set[data_dir][start_index: common.BATCH_SIZE])
+        return unzip(data_set[data_dir][start_index: start_index + common.BATCH_SIZE])
 
 
 if __name__ == "__main__":

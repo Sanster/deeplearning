@@ -6,13 +6,13 @@ import cv2
 import numpy as np
 
 DIGITS = "0123456789"
-LETTERS = "ABCDEFGHJKLMNPRSTUVWXYZ"
+LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 CHARS = list(DIGITS + LETTERS)
 CHAR_SET_LENGTH = len(CHARS)
 
-OUTPUT_CHAR_LENGTH = 6
-OUTPUT_HEIGHT = 40
-OUTPUT_WIDTH = 120
+OUTPUT_CHAR_LENGTH = 3
+OUTPUT_HEIGHT = 28
+OUTPUT_WIDTH = 40
 
 fonts = ["fonts/times.ttf", "fonts/Arial.ttf",
          "fonts/WKGOJanb.TTF", "fonts/miso-chunky.otf",
