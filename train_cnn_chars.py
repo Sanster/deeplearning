@@ -53,19 +53,18 @@ def cnn_net(x):
 
     # Map the 1024 features to the length of char, one for each digit
     with tf.name_scope('fc2'):
-        W_fc2 = weight_variable([1024, len(common.CHARS) * common.LENGTH])
-        b_fc2 = bias_variable([len(common.CHARS) * common.LENGTH])
+        W_fc2 = weight_variable([1024, len(common.CHARS) * common.OUTPUT_CHAR_LENGTH])
+        b_fc2 = bias_variable([len(common.CHARS) * common.OUTPUT_CHAR_LENGTH])
 
         y_conv = tf.matmul(h_fc1, W_fc2) + b_fc2
     return y_conv
 
 
-# TODO: 添加数据读取; 搞清楚输出层的维度
 def main():
     x = tf.placeholder(tf.float32, shape=(
         None, common.OUTPUT_HEIGHT, common.OUTPUT_WIDTH, 1))
 
-    y_ = tf.placeholder(tf.float32, [None, len(common.CHARS) * common.LENGTH])
+    y_ = tf.placeholder(tf.float32, [None, common.CHAR_SET_LENGTH * common.OUTPUT_CHAR_LENGTH])
 
     y_conv = cnn_net(x)
 
@@ -82,14 +81,17 @@ def main():
         correct_prediction = tf.cast(correct_prediction, tf.float32)
     accuracy = tf.reduce_mean(correct_prediction)
 
+    test_images, test_labels = get_data_set('./test')
+
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         for i in range(2000):
-            batch = mnist.train.next_batch(50)
-            train_step.run(feed_dict={x: batch[0], y_: batch[1]})
+            batch_image, batch_labels = get_data_set(
+                './train', i * common.BATCH_SIZE)
+            train_step.run(feed_dict={x: batch_image, y_: batch_labels})
 
-        print('test accuracy %g' % accuracy.eval(feed_dict={
-            x: mnist.test.images, y_: mnist.test.labels}))
+        print('test accuracy %g' % accuracy.eval(
+            feed_dict={x: test_images, y_: test_labels}))
 
 
 if __name__ == "__main__":
@@ -97,4 +99,6 @@ if __name__ == "__main__":
     parser.add_argument('--train_dir', type=str, default='./train/')
     parser.add_argument('--test_dir', type=str, default='./test/')
     FLAGS, unparsed = parser.parse_known_args()
-    tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+    # tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+    # 直接跑 main 和 tf.app.run 有什么区别？
+    main()

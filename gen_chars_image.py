@@ -80,7 +80,7 @@ def get_affine_transform():
 
 def generate_code():
     f = ""
-    for i in range(common.LENGTH):
+    for i in range(common.OUTPUT_CHAR_LENGTH):
         f = f + random.choice(common.CHARS)
     return f
 
