@@ -252,7 +252,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--input_data_dir',
         type=str,
-        default='./mnist_input_data',
+        default='../data/mnist',
         help='Directory to put the input data.'
     )
     parser.add_argument(
