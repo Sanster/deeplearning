@@ -4,12 +4,15 @@ import numpy as np
 import argparse
 import cv2
 import sys
+import os
 
 import common
 from input_data import *
 from util import *
 
 FLAGS = None
+
+EPOCH_SIZE = 200
 
 
 def cnn_net(x):
@@ -44,11 +47,15 @@ def cnn_net(x):
 
     # Fully connected layer 1 -- after 2 round of downsampling, our 40x120 image
     # is down to 10x30x64 feature maps -- maps this to 1024 features.
+    h_pool2_height = int(common.OUTPUT_HEIGHT / 4)
+    h_pool2_width = int(common.OUTPUT_WIDTH / 4)
+
     with tf.name_scope('fc1'):
-        W_fc1 = weight_variable([7 * 10 * 64, 1024])
+        W_fc1 = weight_variable([h_pool2_height * h_pool2_width * 64, 1024])
         b_fc1 = bias_variable([1024])
 
-        h_pool2_flat = tf.reshape(h_pool2, [-1, 7 * 10 * 64])
+        h_pool2_flat = tf.reshape(
+            h_pool2, [-1, h_pool2_height * h_pool2_width * 64])
         h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
     # Map the 1024 features to the length of char, one for each digit
@@ -81,9 +88,8 @@ def train():
     cross_entropy = tf.reduce_mean(cross_entropy)
 
     with tf.name_scope('adam_optimizer'):
-        # train_step = tf.train.AdamOptimizer(1e-3).minimize(cross_entropy)
-        train_step = tf.train.GradientDescentOptimizer(
-            1e-3).minimize(cross_entropy)
+        train_op = tf.train.AdamOptimizer(1e-3).minimize(cross_entropy)
+        # train_op = tf.train.GradientDescentOptimizer(0.01).minimize(cross_entropy)
 
     with tf.name_scope('accuracy'):
         correct_prediction = tf.equal(to_max(y_conv), to_max(y_))
@@ -91,31 +97,28 @@ def train():
     accuracy = tf.reduce_mean(correct_prediction)
 
     test_images, test_labels = get_data_set('./test')
-    print("Finish loading test data")
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
         saver = tf.train.Saver(tf.global_variables())
 
-        for i in range(common.BATCHES):
-            batch_images, batch_labels = get_data_set(
-                './train', common.BATCH_SIZE)
+        for cur_epoch in range(EPOCH_SIZE):
+            for i in range(300):
+                batch_images, batch_labels = get_data_set(
+                    './train', common.BATCH_SIZE)
 
-            if i % 50 == 0 and i != 0:
-                train_accuracy = accuracy.eval(
-                    feed_dict={x: batch_images, y_: batch_labels})
-                print('step %d, training accuracy %g' % (i, train_accuracy))
+                # train_op.run(feed_dict={x: batch_images, y_: batch_labels})
+                _, train_loss = sess.run([train_op, cross_entropy], feed_dict={
+                                         x: batch_images, y_: batch_labels})
+                if i % 20 == 0:
+                    print('Epoch: {} [{}/300], Loss: {:02f}'
+                          .format(cur_epoch, i, train_loss))
 
-            # train_step.run(feed_dict={x: batch_images, y_: batch_labels})
-            _, train_loss = sess.run([train_step, cross_entropy], feed_dict={
-                                     x: batch_images, y_: batch_labels})
-            print("Batch: {}, Loss: {}".format(i, train_loss))
-            saver.save(sess, FLAGS.model_dir + "/model.ckpt")
-
-        # print("Save checkpoint...")
-        print('test accuracy %g' % accuracy.eval(
-            feed_dict={x: test_images, y_: test_labels}))
+            saver.save(sess, FLAGS.checkpoint_dir + "/model.ckpt")
+            acc = accuracy.eval(
+                feed_dict={x: test_images, y_: test_labels})
+            print('Epoch: {}, Test accuracy: {}'.format(cur_epoch, acc))
 
 
 def infer():
@@ -131,12 +134,13 @@ def infer():
         sess.run(tf.global_variables_initializer())
 
         saver = tf.train.Saver(tf.global_variables())
-        ckpt = tf.train.latest_checkpoint(FLAGS.model_dir)
+        ckpt = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
         if ckpt:
             saver.restore(sess, ckpt)
             print('restore from ckpt{}'.format(ckpt))
         else:
-            print('cannot restore')
+            print('cannot restore checkpoint')
+            return
 
         img, code_one_hot = load_one_image(FLAGS.img)
 
@@ -155,16 +159,20 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--train_dir', type=str, default='./train/')
     parser.add_argument('--test_dir', type=str, default='./test/')
-    parser.add_argument('--model_dir', type=str, default='./model/')
+    parser.add_argument('--checkpoint_dir', type=str, default='./checkpoint/')
     parser.add_argument('--mode', type=str, default='train')
     parser.add_argument('--img', type=str, default='')
     FLAGS, unparsed = parser.parse_known_args()
-    # tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
-    # 直接跑 main 和 tf.app.run 有什么区别？
     if FLAGS.mode == 'train':
+        if not os.path.isdir(FLAGS.checkpoint_dir):
+            os.mkdir(FLAGS.checkpoint_dir)
+
         train()
     elif FLAGS.mode == 'infer':
         if FLAGS.img != '':
-            infer()
+            if os.path.exists(FLAGS.img) == True:
+                infer()
+            else:
+                print("Image file not exist")
         else:
             print("Please input an image path use --img=")

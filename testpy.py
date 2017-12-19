@@ -1,8 +1,9 @@
-
 #!/usr/bin/env python3
 
-import glob
+import tensorflow as tf
 
-fname_list = glob.glob("./test/*.png")
-for fname in sorted(fname_list):
-    print(fname)
+my_image = tf.zeros([10, 299, 299, 3])
+r = tf.rank(my_image)
+
+with tf.Session() as sess:
+    print(sess.run(r))

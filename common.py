@@ -10,9 +10,9 @@ LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 CHARS = list(DIGITS + LETTERS)
 CHAR_SET_LENGTH = len(CHARS)
 
-OUTPUT_CHAR_LENGTH = 3
+OUTPUT_CHAR_LENGTH = 10
 OUTPUT_HEIGHT = 28
-OUTPUT_WIDTH = 40
+OUTPUT_WIDTH = 80
 
 fonts = ["fonts/times.ttf", "fonts/Arial.ttf",
          "fonts/WKGOJanb.TTF", "fonts/miso-chunky.otf",

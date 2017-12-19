@@ -3,5 +3,4 @@ train/
 .vscode/
 .idea/
 __pycache__/
-model/*
-!model/.keep
+checkpoint/
