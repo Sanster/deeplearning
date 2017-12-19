@@ -63,10 +63,10 @@ def cnn_net(x):
 
 
 def to_max(y):
-    return tf.argmax(tf.reshape(y, [-1, common.CHAR_SET_LENGTH, common.OUTPUT_CHAR_LENGTH]), 2)
+    return tf.argmax(tf.reshape(y, [-1, common.OUTPUT_CHAR_LENGTH, common.CHAR_SET_LENGTH]), 2)
 
 
-def main():
+def train():
     x = tf.placeholder(tf.float32, shape=(
         None, common.OUTPUT_HEIGHT, common.OUTPUT_WIDTH, 1))
 
@@ -95,6 +95,9 @@ def main():
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
+
+        saver = tf.train.Saver(tf.global_variables())
+
         for i in range(common.BATCHES):
             batch_images, batch_labels = get_data_set(
                 './train', common.BATCH_SIZE)
@@ -108,16 +111,60 @@ def main():
             _, train_loss = sess.run([train_step, cross_entropy], feed_dict={
                                      x: batch_images, y_: batch_labels})
             print("Batch: {}, Loss: {}".format(i, train_loss))
+            saver.save(sess, FLAGS.model_dir + "/model.ckpt")
 
+        # print("Save checkpoint...")
         print('test accuracy %g' % accuracy.eval(
             feed_dict={x: test_images, y_: test_labels}))
+
+
+def infer():
+    x = tf.placeholder(tf.float32, shape=(
+        None, common.OUTPUT_HEIGHT, common.OUTPUT_WIDTH, 1))
+
+    y_ = tf.placeholder(
+        tf.float32, [None, common.CHAR_SET_LENGTH * common.OUTPUT_CHAR_LENGTH])
+
+    y_conv = cnn_net(x)
+
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+
+        saver = tf.train.Saver(tf.global_variables())
+        ckpt = tf.train.latest_checkpoint(FLAGS.model_dir)
+        if ckpt:
+            saver.restore(sess, ckpt)
+            print('restore from ckpt{}'.format(ckpt))
+        else:
+            print('cannot restore')
+
+        img, code_one_hot = load_one_image(FLAGS.img)
+
+        images = np.reshape(
+            img, [-1, common.OUTPUT_HEIGHT, common.OUTPUT_WIDTH, 1])
+
+        labels = np.reshape(
+            code_one_hot, [-1, common.CHAR_SET_LENGTH * common.OUTPUT_CHAR_LENGTH])
+
+        predict_code = sess.run(y_conv, feed_dict={
+                                x: images, y_: labels})
+        print(one_hot_to_code(predict_code))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--train_dir', type=str, default='./train/')
     parser.add_argument('--test_dir', type=str, default='./test/')
+    parser.add_argument('--model_dir', type=str, default='./model/')
+    parser.add_argument('--mode', type=str, default='train')
+    parser.add_argument('--img', type=str, default='')
     FLAGS, unparsed = parser.parse_known_args()
     # tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
     # 直接跑 main 和 tf.app.run 有什么区别？
-    main()
+    if FLAGS.mode == 'train':
+        train()
+    elif FLAGS.mode == 'infer':
+        if FLAGS.img != '':
+            infer()
+        else:
+            print("Please input an image path use --img=")
